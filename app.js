@@ -27,6 +27,47 @@ async function renderWallet(){
 }
 window.openDetail=id=>{const c=(window.__cards||[]).find(x=>String(x.id)===String(id));if(!c)return;document.getElementById("detailModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>银行卡详情</h3><button class="x" onclick="detailModal.classList.remove('show')">×</button></div><div class="detail-grid"><div class="detail"><b>${tr("bank")}</b>${esc(c.bank)}</div><div class="detail"><b>卡号</b>•••• •••• •••• ${esc(c.last4)}</div><div class="detail"><b>${tr("network")}</b>${esc(c.network||"")}</div><div class="detail"><b>${tr("holder")}</b>${esc(c.holder)}</div><div class="detail"><b>${tr("expiry")}</b>${esc(c.expiry)}</div><div class="detail"><b>${tr("address")}</b>${esc(c.address||"")}</div><div class="detail"><b>状态</b>${c.status==="valid"?tr("valid"):tr("invalid")}</div>${c.status==="valid"&&!c.is_default?`<button class="primary" onclick="setDefault('${c.id}')">${tr("setDefault")}</button>`:""}</div></div>`;detailModal.classList.add("show")};
 window.setDefault=async id=>{try{await api("/api/cards",{method:"PATCH",body:JSON.stringify({id,action:"default"})});location.reload()}catch(e){toast(e.message)}};
-window.openAdd=()=>{document.getElementById("addModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>${tr("add")}</h3><button class="x" onclick="addModal.classList.remove('show')">×</button></div><form id="cardForm"><div class="field"><label>${tr("holder")}</label><input id="holder" required></div><div class="field"><label>${tr("cardNumber")}</label><input id="cardNumber" inputmode="numeric" autocomplete="cc-number" placeholder="4111111111111111" required></div><div class="field"><label>${tr("expiry")}</label><input id="exp" maxlength="5" placeholder="MM/YY" required></div><div class="field"><label>${tr("cvv")}</label><input id="cvv" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" placeholder="123" required></div><div class="field"><label>${tr("bank")}</label><input id="bank" required></div><div class="field"><label>${tr("network")}</label><select id="network"><option>Visa</option><option>Mastercard</option><option>UnionPay</option><option>Other</option></select></div><div class="field"><label>${tr("address")}</label><textarea id="addr"></textarea></div><button class="primary">${tr("save")}</button></form></div>`;addModal.classList.add("show");document.getElementById("cardForm").onsubmit=async e=>{e.preventDefault();try{const cn=cardNumber.value.replace(/\D/g,"");await api("/api/cards",{method:"POST",body:JSON.stringify({holder:holder.value.trim(),card_number:cn,last4:cn.slice(-4),cvv:cvv.value.replace(/\D/g,""),expiry:exp.value.trim(),bank:bank.value.trim(),network:network.value,address:addr.value.trim()})});location.reload()}catch(err){toast(err.message)}}};
+window.openAdd=()=>{document.getElementById("addModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>${tr("add")}</h3><button class="x" onclick="addModal.classList.remove('show')">×</button></div><form id="cardForm"><div class="field"><label>${tr("holder")}</label><input id="holder" required></div><div class="field"><label>${tr("cardNumber")}</label><input id="cardNumber" inputmode="numeric" autocomplete="cc-number" maxlength="19" placeholder="4937 2410 1329 8047" required></div><div class="field"><label>${tr("expiry")}</label><input id="exp" inputmode="numeric" maxlength="5" placeholder="12/27" required></div><div class="field"><label>${tr("cvv")}</label><input id="cvv" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" placeholder="123" required></div><div class="field"><label>${tr("network")}</label><select id="network"><option>Visa</option><option>Mastercard</option><option>UnionPay</option><option>Other</option></select></div><div class="field"><label>${tr("address")}</label><textarea id="addr"></textarea></div><button class="primary">${tr("save")}</button></form></div>`;addModal.classList.add("show");
+
+ const cnEl=document.getElementById("cardNumber");
+ const expEl=document.getElementById("exp");
+ const netEl=document.getElementById("network");
+
+ // 卡号输入自动加空格 + 自动识别卡组织
+ cnEl.addEventListener("input",()=>{
+  let v=cnEl.value.replace(/\D/g,"").slice(0,19);
+  cnEl.value=v.replace(/(.{4})/g,"$1 ").trim();
+  let net="Other";
+  if(/^4/.test(v))net="Visa";
+  else if(/^5[1-5]/.test(v)||/^2[2-7]/.test(v))net="Mastercard";
+  else if(/^62/.test(v))net="UnionPay";
+  if(v.length>=2)netEl.value=net;
+ });
+
+ // 有效期自动加 /
+ expEl.addEventListener("input",()=>{
+  let v=expEl.value.replace(/\D/g,"").slice(0,4);
+  if(v.length>=3)v=v.slice(0,2)+"/"+v.slice(2);
+  expEl.value=v;
+ });
+
+ document.getElementById("cardForm").onsubmit=async e=>{
+  e.preventDefault();
+  try{
+   const cn=cnEl.value.replace(/\D/g,"");
+   await api("/api/cards",{method:"POST",body:JSON.stringify({
+    holder:holder.value.trim(),
+    card_number:cn,
+    last4:cn.slice(-4),
+    cvv:cvv.value.replace(/\D/g,""),
+    expiry:expEl.value.trim(),
+    bank:netEl.value,
+    network:netEl.value,
+    address:addr.value.trim()
+   })});
+   location.reload();
+  }catch(err){toast(err.message)}
+ };
+};
 window.openManage=()=>{const cs=window.__cards||[];document.getElementById("manageModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>${tr("manage")}</h3><button class="x" onclick="manageModal.classList.remove('show')">×</button></div><div class="manage-list">${cs.map(c=>`<div class="manage-row" onclick="openDetail('${c.id}')"><div class="manage-icon" style="background:${bankGradient()}">${esc((c.bank||"").slice(0,3).toUpperCase())}</div><div><div class="manage-bank">${esc(c.bank)}</div><div class="manage-meta">•••• ${esc(c.last4)} · ${esc(c.network||"")}${c.is_default?" · "+tr("default"):""}</div></div><div class="manage-arrow">›</div></div>`).join("")}</div></div>`;manageModal.classList.add("show")};
 async function renderAccount(){const me=await requireMe();document.getElementById("app").innerHTML=header()+`<main class="page"><section class="panel"><h1>${tr("account")}</h1><div class="detail"><b>${tr("email")}</b>${esc(me.user.email)}</div><div style="margin-top:20px"><a class="secondary" href="./cards.html">${tr("cards")}</a> <button class="primary" id="lo">${tr("logout")}</button></div></section></main>`;document.getElementById("lo").onclick=async()=>{await api("/api/auth",{method:"POST",body:JSON.stringify({action:"logout"})});location.href="./index.html"}}
