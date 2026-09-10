@@ -195,3 +195,8 @@ button,input,textarea,select{font:inherit}.topbar{height:64px;display:flex;align
   .final-wallet .fw-card.is-prev{transform:translateX(7%) scale(.93)}
   .final-wallet .fw-card.is-next{transform:translateX(-7%) scale(.93)}
 }
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0a0a0a;padding:5px;border-radius:14px;margin-bottom:22px}
+.auth-tabs button{border:0;background:transparent;color:#888;padding:11px;border-radius:10px;cursor:pointer;font-weight:600}
+.auth-tabs button.active{background:#252525;color:#fff}
+.lang select{background:#111;color:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;cursor:pointer;outline:none}
+.lang select option{background:#111;color:#fff}
