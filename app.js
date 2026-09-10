@@ -21,8 +21,40 @@ async function requireMe(){try{return await api("/api/me")}catch{location.href="
 function cardHtml(c){return `<div class="fw-card ${c.status==="invalid"?"invalid":""}" data-card-id="${c.id}" style="background:${bankGradient()}"><div class="fw-bank">${esc(c.bank)}</div><div class="fw-network">${esc(c.network||"")}</div><div class="fw-chip"></div><div class="fw-pan">•••• &nbsp;•••• &nbsp;•••• &nbsp;${esc(c.last4)}</div><div class="fw-bottom"><div><div class="fw-holder">${esc(c.holder)}</div><div class="fw-exp">${esc(c.expiry)}</div></div>${c.is_default?`<div class="fw-badge">★ ${tr("default")}</div>`:""}</div></div>`}
 async function renderWallet(){
  const me=await requireMe();const data=await api("/api/cards");const cards=data.cards||[];
- document.getElementById("app").innerHTML=header()+`<main class="final-wallet"><div class="fw-top" style="justify-content:flex-end;margin-bottom:28px"><button class="fw-profile" onclick="location.href='./account.html'">◉</button></div>${cards.length?`<div class="carousel-wrap"><div class="carousel" id="fwCarousel">${cards.map(cardHtml).join("")}</div></div><div class="fw-dots">${cards.map((_,i)=>`<span class="fw-dot ${i===0?"active":""}"></span>`).join("")}</div>`:`<div class="fw-empty">${tr("noCards")}</div>`}<div class="fw-actions"><button class="fw-add" onclick="openAdd()">＋ ${tr("add")}</button><button class="fw-manage" onclick="openManage()">▤ ${tr("manage")}</button></div></main>`;
- const row=document.getElementById("fwCarousel");if(row){[...row.children].forEach((el,i)=>el.classList.toggle("is-active",i===0));row.addEventListener("click",e=>{const el=e.target.closest(".fw-card");if(!el)return;[...row.children].forEach(x=>x.classList.remove("is-active"));el.classList.add("is-active");openDetail(el.dataset.cardId)})}
+ document.getElementById("app").innerHTML=header()+`<main class="final-wallet"><div class="fw-top" style="justify-content:flex-end;margin-bottom:28px"><button class="fw-profile" onclick="location.href='./account.html'">◉</button></div>${cards.length?`<div class="carousel-wrap"><div class="carousel" id="fwCarousel">${cards.map(cardHtml).join("")}</div></div><div class="fw-dots" id="fwDots">${cards.map((_,i)=>`<span class="fw-dot ${i===0?"active":""}"></span>`).join("")}</div>`:`<div class="fw-empty">${tr("noCards")}</div>`}<div class="fw-actions"><button class="fw-add" onclick="openAdd()">＋ ${tr("add")}</button><button class="fw-manage" onclick="openManage()">▤ ${tr("manage")}</button></div></main>`;
+ const row=document.getElementById("fwCarousel");
+ if(row){
+  const dots=document.getElementById("fwDots");
+  const updateActive=()=>{
+   const items=[...row.children];
+   if(!items.length)return;
+   const center=row.scrollLeft+row.clientWidth/2;
+   let idx=0,min=Infinity;
+   items.forEach((el,i)=>{const c=el.offsetLeft+el.offsetWidth/2;const d=Math.abs(c-center);if(d<min){min=d;idx=i}});
+   items.forEach((el,i)=>{
+    el.classList.toggle("is-active",i===idx);
+    el.classList.toggle("is-prev",i===idx-1);
+    el.classList.toggle("is-next",i===idx+1);
+   });
+   if(dots)[...dots.children].forEach((d,i)=>d.classList.toggle("active",i===idx));
+  };
+  let raf=0;
+  row.addEventListener("scroll",()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(updateActive)});
+  row.addEventListener("click",e=>{
+   const el=e.target.closest(".fw-card");
+   if(!el)return;
+   const items=[...row.children];
+   const i=items.indexOf(el);
+   const center=row.scrollLeft+row.clientWidth/2;
+   const elCenter=el.offsetLeft+el.offsetWidth/2;
+   if(Math.abs(elCenter-center)>8){
+    el.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});
+    return;
+   }
+   openDetail(el.dataset.cardId);
+  });
+  updateActive();
+ }
  window.__cards=cards;
 }
 window.openDetail=id=>{const c=(window.__cards||[]).find(x=>String(x.id)===String(id));if(!c)return;document.getElementById("detailModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>银行卡详情</h3><button class="x" onclick="detailModal.classList.remove('show')">×</button></div><div class="detail-grid"><div class="detail"><b>${tr("bank")}</b>${esc(c.bank)}</div><div class="detail"><b>卡号</b>•••• •••• •••• ${esc(c.last4)}</div><div class="detail"><b>${tr("network")}</b>${esc(c.network||"")}</div><div class="detail"><b>${tr("holder")}</b>${esc(c.holder)}</div><div class="detail"><b>${tr("expiry")}</b>${esc(c.expiry)}</div><div class="detail"><b>${tr("address")}</b>${esc(c.address||"")}</div><div class="detail"><b>状态</b>${c.status==="valid"?tr("valid"):tr("invalid")}</div>${c.status==="valid"&&!c.is_default?`<button class="primary" onclick="setDefault('${c.id}')">${tr("setDefault")}</button>`:""}</div></div>`;detailModal.classList.add("show")};
@@ -33,7 +65,6 @@ window.openAdd=()=>{document.getElementById("addModal").innerHTML=`<div class="s
  const expEl=document.getElementById("exp");
  const netEl=document.getElementById("network");
 
- // 卡号输入自动加空格 + 自动识别卡组织
  cnEl.addEventListener("input",()=>{
   let v=cnEl.value.replace(/\D/g,"").slice(0,19);
   cnEl.value=v.replace(/(.{4})/g,"$1 ").trim();
@@ -44,7 +75,6 @@ window.openAdd=()=>{document.getElementById("addModal").innerHTML=`<div class="s
   if(v.length>=2)netEl.value=net;
  });
 
- // 有效期自动加 /
  expEl.addEventListener("input",()=>{
   let v=expEl.value.replace(/\D/g,"").slice(0,4);
   if(v.length>=3)v=v.slice(0,2)+"/"+v.slice(2);
