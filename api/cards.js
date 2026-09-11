@@ -16,8 +16,10 @@ export default async function handler(req,res){
     last4=String(last4||"").replace(/\D/g,"");
     card_number=String(card_number||"").replace(/\D/g,"");
     cvv=String(cvv||"").replace(/\D/g,"");
+    holder=String(holder||"");
+    address=String(address||"");
 
-    if(!bank||!holder||!/^\d{4}$/.test(last4)||!/^\d{2}\/\d{2}$/.test(expiry||""))
+    if(!bank||!/^\d{4}$/.test(last4)||!/^\d{2}\/\d{2}$/.test(expiry||""))
       return res.status(400).json({error:"请完整填写银行卡信息"});
 
     if(card_number && (card_number.length<12 || card_number.length>19))
@@ -30,7 +32,7 @@ export default async function handler(req,res){
 
     const has=await sql`select id from cards where user_id=${s.uid} and deleted_at is null limit 1`;
 
-    await sql`insert into cards(user_id,bank,last4,card_number,cvv,holder,expiry,address,network,status,is_default) values(${s.uid},${bank},${last4},${card_number||""},${cvv||""},${holder},${expiry},${address||""},${network||""},'valid',${!has.length})`;
+    await sql`insert into cards(user_id,bank,last4,card_number,cvv,holder,expiry,address,network,status,is_default) values(${s.uid},${bank},${last4},${card_number||""},${cvv||""},${holder},${expiry},${address},${network||""},'valid',${!has.length})`;
     return res.json({ok:true})
   }
 

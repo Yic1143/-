@@ -33,7 +33,7 @@ async function renderAuth(){
  document.getElementById("authf").onsubmit=async e=>{e.preventDefault();try{await api("/api/auth",{method:"POST",body:JSON.stringify({action:mode,email:email.value.trim(),password:pwd.value})});location.href="./cards.html"}catch(err){toast(err.message)}};
 }
 async function requireMe(){try{return await api("/api/me")}catch{location.href="./index.html";throw new Error("unauthorized")}}
-function cardHtml(c){return `<div class="fw-card ${c.status==="invalid"?"invalid":""}" data-card-id="${c.id}" style="background:${bankGradient()}"><div class="fw-bank">${esc(c.bank)}</div><div class="fw-network">${esc(c.network||"")}</div><div class="fw-chip"></div><div class="fw-pan">•••• &nbsp;•••• &nbsp;•••• &nbsp;${esc(c.last4)}</div><div class="fw-bottom"><div><div class="fw-holder">${esc(c.holder)}</div><div class="fw-exp">${esc(c.expiry)}</div></div>${c.is_default?`<div class="fw-badge">★ ${tr("default")}</div>`:""}</div></div>`}
+function cardHtml(c){return `<div class="fw-card ${c.status==="invalid"?"invalid":""}" data-card-id="${c.id}" style="background:${bankGradient()}"><div class="fw-bank">${esc(c.bank)}</div><div class="fw-network">${esc(c.network||"")}</div><div class="fw-chip"></div><div class="fw-pan">•••• &nbsp;•••• &nbsp;•••• &nbsp;${esc(c.last4)}</div><div class="fw-bottom"><div><div class="fw-exp">${esc(c.expiry)}</div></div>${c.is_default?`<div class="fw-badge">★ ${tr("default")}</div>`:""}</div></div>`}
 async function renderWallet(){
  const me=await requireMe();const data=await api("/api/cards");const cards=data.cards||[];
  document.getElementById("app").innerHTML=header()+`<main class="final-wallet"><div class="fw-top" style="justify-content:flex-end;margin-bottom:28px"><button class="fw-profile" onclick="location.href='./account.html'">◉</button></div>${cards.length?`<div class="carousel-wrap"><div class="carousel" id="fwCarousel">${cards.map(cardHtml).join("")}</div></div><div class="fw-dots" id="fwDots">${cards.map((_,i)=>`<span class="fw-dot ${i===0?"active":""}"></span>`).join("")}</div>`:`<div class="fw-empty">${tr("noCards")}</div>`}<div class="fw-actions"><button class="fw-add" onclick="openAdd()">＋ ${tr("add")}</button><button class="fw-manage" onclick="openManage()">▤ ${tr("manage")}</button></div></main>`;
@@ -72,9 +72,9 @@ async function renderWallet(){
  }
  window.__cards=cards;
 }
-window.openDetail=id=>{const c=(window.__cards||[]).find(x=>String(x.id)===String(id));if(!c)return;document.getElementById("detailModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>${tr("detailTitle")}</h3><button class="x" onclick="detailModal.classList.remove('show')">×</button></div><div class="detail-grid"><div class="detail"><b>${tr("bank")}</b>${esc(c.bank)}</div><div class="detail"><b>${tr("cardNumber")}</b>•••• •••• •••• ${esc(c.last4)}</div><div class="detail"><b>${tr("network")}</b>${esc(c.network||"")}</div><div class="detail"><b>${tr("holder")}</b>${esc(c.holder)}</div><div class="detail"><b>${tr("expiry")}</b>${esc(c.expiry)}</div><div class="detail"><b>${tr("address")}</b>${esc(c.address||"")}</div><div class="detail"><b>${tr("statusLabel")}</b>${c.status==="valid"?tr("valid"):tr("invalid")}</div>${c.status==="valid"&&!c.is_default?`<button class="primary" onclick="setDefault('${c.id}')">${tr("setDefault")}</button>`:""}</div></div>`;detailModal.classList.add("show")};
+window.openDetail=id=>{const c=(window.__cards||[]).find(x=>String(x.id)===String(id));if(!c)return;document.getElementById("detailModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>${tr("detailTitle")}</h3><button class="x" onclick="detailModal.classList.remove('show')">×</button></div><div class="detail-grid"><div class="detail"><b>${tr("bank")}</b>${esc(c.bank)}</div><div class="detail"><b>${tr("cardNumber")}</b>•••• •••• •••• ${esc(c.last4)}</div><div class="detail"><b>${tr("network")}</b>${esc(c.network||"")}</div><div class="detail"><b>${tr("expiry")}</b>${esc(c.expiry)}</div><div class="detail"><b>${tr("statusLabel")}</b>${c.status==="valid"?tr("valid"):tr("invalid")}</div>${c.status==="valid"&&!c.is_default?`<button class="primary" onclick="setDefault('${c.id}')">${tr("setDefault")}</button>`:""}</div></div>`;detailModal.classList.add("show")};
 window.setDefault=async id=>{try{await api("/api/cards",{method:"PATCH",body:JSON.stringify({id,action:"default"})});location.reload()}catch(e){toast(e.message)}};
-window.openAdd=()=>{document.getElementById("addModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>${tr("add")}</h3><button class="x" onclick="addModal.classList.remove('show')">×</button></div><form id="cardForm"><div class="field"><label>${tr("holder")}</label><input id="holder" required></div><div class="field"><label>${tr("cardNumber")}</label><input id="cardNumber" inputmode="numeric" autocomplete="cc-number" maxlength="19" required></div><div class="field"><label>${tr("expiry")}</label><input id="exp" inputmode="numeric" maxlength="5" required></div><div class="field"><label>${tr("cvv")}</label><input id="cvv" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" required></div><div class="field"><label>${tr("network")}</label><select id="network"><option>Visa</option><option>Mastercard</option><option>UnionPay</option><option>Other</option></select></div><div class="field"><label>${tr("address")}</label><textarea id="addr"></textarea></div><button class="primary">${tr("save")}</button></form></div>`;addModal.classList.add("show");
+window.openAdd=()=>{document.getElementById("addModal").innerHTML=`<div class="sheet"><div class="modal-head"><h3>${tr("add")}</h3><button class="x" onclick="addModal.classList.remove('show')">×</button></div><form id="cardForm"><div class="field"><label>${tr("cardNumber")}</label><input id="cardNumber" inputmode="numeric" autocomplete="cc-number" maxlength="19" required></div><div class="field"><label>${tr("expiry")}</label><input id="exp" inputmode="numeric" maxlength="5" required></div><div class="field"><label>${tr("cvv")}</label><input id="cvv" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" required></div><div class="field"><label>${tr("network")}</label><select id="network"><option>Visa</option><option>Mastercard</option><option>UnionPay</option><option>Other</option></select></div><button class="primary">${tr("save")}</button></form></div>`;addModal.classList.add("show");
 
  const cnEl=document.getElementById("cardNumber");
  const expEl=document.getElementById("exp");
@@ -101,14 +101,14 @@ window.openAdd=()=>{document.getElementById("addModal").innerHTML=`<div class="s
   try{
    const cn=cnEl.value.replace(/\D/g,"");
    await api("/api/cards",{method:"POST",body:JSON.stringify({
-    holder:holder.value.trim(),
+    holder:"",
     card_number:cn,
     last4:cn.slice(-4),
     cvv:cvv.value.replace(/\D/g,""),
     expiry:expEl.value.trim(),
     bank:netEl.value,
     network:netEl.value,
-    address:addr.value.trim()
+    address:""
    })});
    location.reload();
   }catch(err){toast(err.message)}
